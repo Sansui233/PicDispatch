@@ -9,10 +9,10 @@ permissions:
   contents: write
 
 env:
-  SOLUTION_FILE: YourSolution.sln
-  PROJECT_FILE: YourWpfProject/YourWpfProject.csproj
+  SOLUTION_FILE: PicDispatch.sln
+  PROJECT_FILE: PicDispatch.csproj
   BUILD_CONFIGURATION: Release
-  APP_NAME: YourApp
+  APP_NAME: PicDispatch
 
 jobs:
   build-release:
