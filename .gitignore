@@ -1,0 +1,63 @@
+# Build results
+bin/
+obj/
+[Bb]uild/
+[Rr]elease/
+[Dd]ebug/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+packages/
+.nuget/packages/
+project.lock.json
+project.assets.json
+
+# Logs
+*.log
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# WPF generated files
+*.g.cs
+*.g.i.cs
+*.baml
+GeneratedInternalTypeHelper.g.cs
+
+# Publish output
+publish/
+app.publish/
+*.application
+*.manifest
+
+# ClickOnce
+*.deploy
+*.pdb
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

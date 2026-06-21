@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  SOLUTION_FILE: YourSolution.sln
+  PROJECT_FILE: YourWpfProject/YourWpfProject.csproj
+  BUILD_CONFIGURATION: Release
+  APP_NAME: YourApp
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore $env:SOLUTION_FILE
+
+      - name: Build WPF project
+        run: |
+          msbuild $env:PROJECT_FILE `
+            /p:Configuration=$env:BUILD_CONFIGURATION `
+            /p:Platform="Any CPU" `
+            /p:OutputPath="$env:GITHUB_WORKSPACE\publish\"
+
+      - name: Create zip
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $zip = "$env:APP_NAME-$tag.zip"
+
+          Compress-Archive `
+            -Path "$env:GITHUB_WORKSPACE\publish\*" `
+            -DestinationPath "$env:GITHUB_WORKSPACE\$zip" `
+            -Force
+
+          echo "ZIP_FILE=$zip" >> $env:GITHUB_ENV
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "$env:ZIP_FILE" `
+            --title "${{ github.ref_name }}" `
+            --notes "Release ${{ github.ref_name }}"
