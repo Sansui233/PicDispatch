@@ -20,8 +20,9 @@ namespace PicDispatch
                 _settingsService,
                 new ImageQueueService(),
                 new ImageLoaderService(),
-                new FileMoveService());
+                new FileActionService());
             _viewModel.RequestSettings += OpenSettings;
+            _viewModel.RequestTrash += OpenTrash;
             _viewModel.RequestMoveConflict += ConfirmMoveConflict;
             DataContext = _viewModel;
             _viewModel.Initialize();
@@ -55,6 +56,31 @@ namespace PicDispatch
                     _viewModel.UndoCommand.Execute(null);
                 }
 
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Delete)
+            {
+                if (_viewModel.TrashCurrentCommand.CanExecute(null))
+                {
+                    _viewModel.TrashCurrentCommand.Execute(null);
+                }
+
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Left)
+            {
+                _viewModel.ShowPrevious();
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Right)
+            {
+                _viewModel.ShowNext();
                 e.Handled = true;
                 return;
             }
@@ -113,6 +139,16 @@ namespace PicDispatch
                     _viewModel.ApplySettings(settings);
                     _viewModel.SaveSettings();
                 })
+            {
+                Owner = this
+            };
+
+            window.ShowDialog();
+        }
+
+        private void OpenTrash()
+        {
+            var window = new TrashWindow(_viewModel.Settings?.TargetFolders, _viewModel)
             {
                 Owner = this
             };

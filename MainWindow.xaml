@@ -42,6 +42,67 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,6,8,6">
+                <ScrollViewer MaxWidth="460"
+                              HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled"
+                              VerticalAlignment="Center"
+                              shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <ItemsControl ItemsSource="{Binding SourceFolders}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding DisplayText}"
+                                        Command="{Binding DataContext.SelectSourceFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource SourceFolderButtonStyle}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <Button Command="{Binding OpenTrashCommand}"
+                        Style="{StaticResource TextButtonStyle}"
+                        MinWidth="82"
+                        Padding="12,6"
+                        Margin="0,0,6,0"
+                        ToolTip="Trash"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Trash" VerticalAlignment="Center"/>
+                        <Border Grid.Column="1"
+                                MinWidth="16"
+                                Height="16"
+                                CornerRadius="8"
+                                Background="{StaticResource DangerBrush}"
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTrashItems}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding TrashCount}"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0"/>
+                        </Border>
+                    </Grid>
+                </Button>
                 <Button Style="{StaticResource IconButtonStyle}" Click="SettingsButton_Click" ToolTip="Settings" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <Path Width="17" Height="17" Stretch="Uniform" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                           Data="M19.43,12.98c.04-.32,.07-.65,.07-.98s-.02-.66-.07-.98l2.11-1.65c.19-.15,.24-.42,.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49,1c-.52-.4-1.08-.73-1.69-.98L14.5,2.42C14.47,2.18,14.25,2,14,2h-4c-.25,0-.46,.18-.5,.42L9.12,5.07c-.61,.25-1.18,.59-1.69,.98l-2.49-1c-.23-.08-.48,0-.6,.22l-2,3.46c-.13,.22-.07,.49,.12,.64l2.11,1.65c-.04,.32-.08,.65-.08,.98s.03,.66,.08,.98l-2.11,1.65c-.19,.15-.24,.42-.12,.64l2,3.46c.12,.22,.37,.31,.6,.22l2.49-1c.52,.4,1.08,.73,1.69,.98l.38,2.65c.04,.24,.25,.42,.5,.42h4c.25,0,.46-.18,.5-.42l.38-2.65c.61-.25,1.18-.59,1.69-.98l2.49,1c.23,.08,.48,0,.6-.22l2-3.46c.12-.22,.07-.49-.12-.64l-2.11-1.65z M12,15.5A3.5,3.5 0 1,1 12,8a3.5,3.5 0 0,1 0,7.5z"/>
@@ -61,53 +122,69 @@
             </Grid.ColumnDefinitions>
 
             <Grid>
-                <Border Background="{StaticResource ImageSurfaceBrush}" CornerRadius="12">
-                    <Image Source="{Binding CurrentImage}" Stretch="Uniform" SnapsToDevicePixels="True"/>
-                </Border>
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="360">
-                    <StackPanel.Style>
-                        <Style TargetType="{x:Type StackPanel}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsConfigured}" Value="False">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <TextBlock Text="PicDispatch"
-                               FontSize="28"
-                               FontWeight="SemiBold"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="Open settings to add source folders and target folders before sorting images."
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="24"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Border Background="{StaticResource ImageSurfaceBrush}" CornerRadius="12">
+                        <Image Source="{Binding CurrentImage}" Stretch="Uniform" SnapsToDevicePixels="True"/>
+                    </Border>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="360">
+                        <StackPanel.Style>
+                            <Style TargetType="{x:Type StackPanel}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsConfigured}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="PicDispatch"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Open settings to add source folders and target folders before sorting images."
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,12,0,20"/>
+                        <Button Content="Settings"
+                                Click="SettingsButton_Click"
+                                Style="{StaticResource TextButtonStyle}"
+                                HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="No image"
                                Foreground="{StaticResource TextSecondaryBrush}"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap"
-                               Margin="0,12,0,20"/>
-                    <Button Content="Settings"
-                            Click="SettingsButton_Click"
-                            Style="{StaticResource TextButtonStyle}"
-                            HorizontalAlignment="Center"/>
-                </StackPanel>
-                <TextBlock Text="No image"
+                               FontSize="24"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasImage}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsConfigured}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <TextBlock Grid.Row="1"
+                           Text="{Binding ActionStatusText}"
                            Foreground="{StaticResource TextSecondaryBrush}"
-                           FontSize="24"
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis"
                            HorizontalAlignment="Center"
-                           VerticalAlignment="Center">
-                    <TextBlock.Style>
-                        <Style TargetType="{x:Type TextBlock}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasImage}" Value="False">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsConfigured}" Value="False">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                           VerticalAlignment="Center"
+                           Margin="2,6,2,0"/>
             </Grid>
 
             <Grid Grid.Column="1" Margin="18,0,0,0">
@@ -115,53 +192,96 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel>
                     <TextBlock Text="{Binding CurrentFileName}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                     <TextBlock Text="{Binding CurrentSourceFolder}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
-                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AccentBrush}" Margin="0,14,0,0"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding CurrentPositionText}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"/>
+                        <Slider Minimum="1"
+                                Grid.Column="1"
+                                Maximum="{Binding ProgressMaximum}"
+                                Value="{Binding CurrentPosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding CanJump}"
+                                IsSnapToTickEnabled="True"
+                                TickFrequency="1"
+                                Style="{StaticResource ProgressSliderStyle}"
+                                VerticalAlignment="Center"/>
+                    </Grid>
                 </StackPanel>
 
-                <Border Grid.Row="1" Margin="0,20,0,14" Background="{StaticResource PanelBackgroundBrush}" CornerRadius="10" Padding="14">
-                    <TextBlock Text="{Binding NotificationText}" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap"/>
-                    <Border.Style>
-                        <Style TargetType="{x:Type Border}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasNotification}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                </Border>
-
-                <ListBox Grid.Row="2" ItemsSource="{Binding Targets}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="4,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="42"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Width="34" Height="34" CornerRadius="9" Background="{StaticResource KeyBadgeBackgroundBrush}" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Shortcut}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding FolderPath}" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-
-                <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,12">
+                    <Button Content="Trash" Command="{Binding TrashCurrentCommand}" Style="{StaticResource TextButtonStyle}" Foreground="{StaticResource DangerBrush}" Margin="0,0,8,0"/>
                     <Button Content="Undo" Command="{Binding UndoCommand}" Style="{StaticResource TextButtonStyle}" Margin="0,0,8,0"/>
                     <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource TextButtonStyle}"/>
                 </StackPanel>
+
+                <Border Grid.Row="2" Background="{StaticResource ListBackgroundBrush}" CornerRadius="10">
+                    <ScrollViewer Padding="4"
+                                  Focusable="False"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Targets}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.MoveToTargetCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"
+                                            Margin="4,6"
+                                            Cursor="Hand">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <ContentPresenter/>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Grid x:Name="TargetRow">
+                                            <Border CornerRadius="8" Background="Transparent"/>
+                                            <Grid Margin="0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="42"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="34" Height="34" CornerRadius="9" Background="{StaticResource KeyBadgeBackgroundBrush}" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Shortcut}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding FolderPath}" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Border x:Name="MoveOverlay"
+                                                    Background="{StaticResource AccentBrush}"
+                                                    CornerRadius="8"
+                                                    Visibility="Collapsed">
+                                                <TextBlock Text="{Binding Name, StringFormat=移动到 {0}}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="#10151B"
+                                                           FontWeight="SemiBold"/>
+                                            </Border>
+                                        </Grid>
+                                    </Button>
+                                    <DataTemplate.Triggers>
+                                        <Trigger SourceName="TargetRow" Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="MoveOverlay" Property="Visibility" Value="Visible"/>
+                                        </Trigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
             </Grid>
         </Grid>
     </Grid>
