@@ -7,6 +7,7 @@ Just press key to move your picture to target folder
 TODO:
 - progress bar, progress jump
 - copy mode modifier
+- add app manifest
 
 ## Download
 
