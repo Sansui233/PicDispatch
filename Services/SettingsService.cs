@@ -9,6 +9,7 @@ namespace PicDispatch.Services
     public class SettingsService
     {
         private readonly string _settingsPath;
+        private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(false);
 
         public SettingsService()
         {
@@ -27,9 +28,11 @@ namespace PicDispatch.Services
 
             try
             {
-                using (var stream = File.OpenRead(_settingsPath))
+                var json = File.ReadAllText(_settingsPath, Encoding.UTF8);
+                var serializer = new DataContractJsonSerializer(typeof(AppSettings));
+                var bytes = Encoding.UTF8.GetBytes(json);
+                using (var stream = new MemoryStream(bytes))
                 {
-                    var serializer = new DataContractJsonSerializer(typeof(AppSettings));
                     return serializer.ReadObject(stream) as AppSettings ?? new AppSettings();
                 }
             }
@@ -46,7 +49,7 @@ namespace PicDispatch.Services
             {
                 serializer.WriteObject(stream, settings);
                 var json = Encoding.UTF8.GetString(stream.ToArray());
-                File.WriteAllText(_settingsPath, json, Encoding.UTF8);
+                File.WriteAllText(_settingsPath, json, Utf8NoBom);
             }
         }
     }
