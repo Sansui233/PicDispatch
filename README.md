@@ -1,6 +1,6 @@
 # PicDispatch
 
-An Windows Native App to Move image. Like slidebox on ios
+An Windows native app to manually sort images. Like slidebox on IOS.
 
 Just press key to move your picture to target folder
 
