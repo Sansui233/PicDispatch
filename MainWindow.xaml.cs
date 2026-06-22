@@ -11,6 +11,7 @@ namespace PicDispatch
     {
         private readonly ShortcutService _shortcutService = new ShortcutService();
         private readonly SettingsService _settingsService = new SettingsService();
+        private readonly ImageLoaderService _imageLoaderService = new ImageLoaderService();
         private readonly MainViewModel _viewModel;
 
         public MainWindow()
@@ -19,7 +20,7 @@ namespace PicDispatch
             _viewModel = new MainViewModel(
                 _settingsService,
                 new ImageQueueService(),
-                new ImageLoaderService(),
+                _imageLoaderService,
                 new FileActionService());
             _viewModel.RequestSettings += OpenSettings;
             _viewModel.RequestTrash += OpenTrash;
@@ -148,7 +149,7 @@ namespace PicDispatch
 
         private void OpenTrash()
         {
-            var window = new TrashWindow(_viewModel.Settings?.TargetFolders, _viewModel)
+            var window = new TrashWindow(_viewModel.Settings?.TargetFolders, _viewModel, _imageLoaderService)
             {
                 Owner = this
             };

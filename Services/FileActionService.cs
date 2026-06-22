@@ -14,13 +14,13 @@ namespace PicDispatch.Services
 
     public class FileActionService
     {
+        private const string TrashMetadataSuffix = ".trash.xml";
         private readonly Stack<FileActionRecord> _history = new Stack<FileActionRecord>();
         private readonly List<TrashItem> _trashItems = new List<TrashItem>();
         private readonly string _trashRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "PicDispatch",
-            "Trash",
-            Guid.NewGuid().ToString("N"));
+            "Trash");
         private readonly string _removedRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "PicDispatch",
@@ -28,6 +28,11 @@ namespace PicDispatch.Services
             Guid.NewGuid().ToString("N"));
 
         public event Action StateChanged;
+
+        public FileActionService()
+        {
+            LoadTrashItems();
+        }
 
         public bool CanUndo => _history.Count > 0;
 
@@ -61,7 +66,9 @@ namespace PicDispatch.Services
             var destinationPath = CreateUniquePath(Path.Combine(_trashRoot, Path.GetFileName(item.Path)));
             File.Move(item.Path, destinationPath);
 
-            _trashItems.Add(new TrashItem(destinationPath, item.Path, item.SourceFolder));
+            var trashItem = new TrashItem(destinationPath, item.Path, item.SourceFolder);
+            _trashItems.Add(trashItem);
+            SaveTrashItem(trashItem);
             var record = new FileActionRecord(FileActionKind.MoveToTrash, item.Path, destinationPath, item.Path, item.SourceFolder, queueIndex);
             Push(record);
             return record;
@@ -71,6 +78,7 @@ namespace PicDispatch.Services
         {
             var destinationPath = PrepareDestination(item.OriginalPath, target.FolderPath, conflictResolution);
             File.Move(item.TrashPath, destinationPath);
+            RemoveTrashMetadata(item.TrashPath);
             RemoveTrashItem(item.TrashPath);
 
             var record = new FileActionRecord(FileActionKind.ClassifyFromTrash, item.TrashPath, destinationPath, item.OriginalPath, item.SourceFolder, -1);
@@ -83,6 +91,7 @@ namespace PicDispatch.Services
             Directory.CreateDirectory(_removedRoot);
             var destinationPath = CreateUniquePath(Path.Combine(_removedRoot, Path.GetFileName(item.TrashPath)));
             File.Move(item.TrashPath, destinationPath);
+            RemoveTrashMetadata(item.TrashPath);
             RemoveTrashItem(item.TrashPath);
 
             var record = new FileActionRecord(FileActionKind.RemoveFromTrash, item.TrashPath, destinationPath, item.OriginalPath, item.SourceFolder, -1);
@@ -103,6 +112,7 @@ namespace PicDispatch.Services
             {
                 var destinationPath = CreateUniquePath(Path.Combine(_removedRoot, Path.GetFileName(item.TrashPath)));
                 File.Move(item.TrashPath, destinationPath);
+                RemoveTrashMetadata(item.TrashPath);
                 entries.Add(new FileActionEntry(item.TrashPath, destinationPath, item.OriginalPath, item.SourceFolder));
                 RemoveTrashItem(item.TrashPath);
             }
@@ -140,6 +150,25 @@ namespace PicDispatch.Services
             return record;
         }
 
+        public bool PruneMissingTrashItems()
+        {
+            var removedAny = false;
+
+            foreach (var item in _trashItems.ToList())
+            {
+                if (File.Exists(item.TrashPath))
+                {
+                    continue;
+                }
+
+                RemoveTrashMetadata(item.TrashPath);
+                _trashItems.Remove(item);
+                removedAny = true;
+            }
+
+            return removedAny;
+        }
+
         private string PrepareDestination(string sourcePath, string targetFolder, MoveConflictResolution conflictResolution)
         {
             Directory.CreateDirectory(targetFolder);
@@ -169,11 +198,90 @@ namespace PicDispatch.Services
                 case FileActionKind.ClearTrash:
                     foreach (var entry in record.Entries)
                     {
-                        _trashItems.Add(new TrashItem(entry.FromPath, entry.OriginalPath, entry.SourceFolder));
+                        var restoredItem = new TrashItem(entry.FromPath, entry.OriginalPath, entry.SourceFolder);
+                        _trashItems.Add(restoredItem);
+                        SaveTrashItem(restoredItem);
                     }
 
                     break;
             }
+        }
+
+        private void LoadTrashItems()
+        {
+            Directory.CreateDirectory(_trashRoot);
+
+            foreach (var filePath in Directory.GetFiles(_trashRoot))
+            {
+                if (filePath.EndsWith(TrashMetadataSuffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var trashItem = LoadTrashItem(filePath);
+                if (trashItem != null)
+                {
+                    _trashItems.Add(trashItem);
+                }
+            }
+        }
+
+        private static TrashItem LoadTrashItem(string trashPath)
+        {
+            var metadataPath = GetTrashMetadataPath(trashPath);
+            if (!File.Exists(metadataPath))
+            {
+                return null;
+            }
+
+            try
+            {
+                using (var stream = File.OpenRead(metadataPath))
+                {
+                    var serializer = new System.Xml.Serialization.XmlSerializer(typeof(TrashItemMetadata));
+                    var metadata = serializer.Deserialize(stream) as TrashItemMetadata;
+                    if (metadata == null)
+                    {
+                        return null;
+                    }
+
+                    return new TrashItem(trashPath, metadata.OriginalPath ?? trashPath, metadata.SourceFolder ?? string.Empty);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void SaveTrashItem(TrashItem item)
+        {
+            var metadataPath = GetTrashMetadataPath(item.TrashPath);
+            var metadata = new TrashItemMetadata
+            {
+                OriginalPath = item.OriginalPath,
+                SourceFolder = item.SourceFolder
+            };
+
+            using (var stream = File.Create(metadataPath))
+            {
+                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(TrashItemMetadata));
+                serializer.Serialize(stream, metadata);
+            }
+        }
+
+        private static void RemoveTrashMetadata(string trashPath)
+        {
+            var metadataPath = GetTrashMetadataPath(trashPath);
+            if (File.Exists(metadataPath))
+            {
+                File.Delete(metadataPath);
+            }
+        }
+
+        private static string GetTrashMetadataPath(string trashPath)
+        {
+            return trashPath + TrashMetadataSuffix;
         }
 
         private void Push(FileActionRecord record)
@@ -223,6 +331,13 @@ namespace PicDispatch.Services
             }
 
             throw new IOException("Could not create a unique destination path.");
+        }
+
+        private class TrashItemMetadata
+        {
+            public string OriginalPath { get; set; }
+
+            public string SourceFolder { get; set; }
         }
     }
 }

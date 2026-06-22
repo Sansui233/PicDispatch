@@ -46,6 +46,11 @@
                         Foreground="{StaticResource DangerBrush}"
                         MinHeight="34"
                         Margin="0,0,6,0"/>
+                <Button Content="Refresh"
+                    Command="{Binding RefreshCommand}"
+                    Style="{StaticResource TextButtonStyle}"
+                    MinHeight="34"
+                    Margin="0,0,6,0"/>
                 <Button Content="Clear Trash"
                         Command="{Binding ClearTrashCommand}"
                         Style="{StaticResource TextButtonStyle}"
@@ -84,20 +89,37 @@
         <ListBox Grid.Row="2"
                  Margin="18,18,18,18"
                  ItemsSource="{Binding TrashItems}"
-                 SelectedItem="{Binding SelectedTrashItem}">
+                 SelectedItem="{Binding SelectedTrashItem}"
+                 HorizontalContentAlignment="Stretch">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid Margin="8,7">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold"/>
-                        <TextBlock Grid.Row="1"
-                                   Text="{Binding OriginalPath}"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Margin="0,4,0,0"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="60"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding OriginalPath}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Width="44"
+                                Height="44"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Margin="12,0,0,0"
+                                Background="{StaticResource PanelBackgroundBrush}"
+                                CornerRadius="6"
+                                ClipToBounds="True">
+                            <Image Source="{Binding Thumbnail}"
+                                   Stretch="UniformToFill"
+                                   SnapsToDevicePixels="True"/>
+                        </Border>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>

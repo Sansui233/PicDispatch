@@ -11,19 +11,24 @@ namespace PicDispatch.ViewModels
 {
     public class TrashViewModel : ObservableObject
     {
+    public RelayCommand RefreshCommand { get; }
         private readonly FileActionService _fileActionService;
+        private readonly ImageLoaderService _imageLoaderService;
         private readonly MainViewModel _mainViewModel;
         private TrashItem _selectedTrashItem;
         private TargetFolder _selectedTarget;
         private string _notificationText = string.Empty;
+        private int _thumbnailRefreshVersion;
 
         public TrashViewModel(
             FileActionService fileActionService,
             MainViewModel mainViewModel,
+            ImageLoaderService imageLoaderService,
             IEnumerable<TargetFolder> targets)
         {
             _fileActionService = fileActionService;
             _mainViewModel = mainViewModel;
+            _imageLoaderService = imageLoaderService;
             _fileActionService.StateChanged += OnFileActionStateChanged;
 
             TrashItems = new ObservableCollection<TrashItem>();
@@ -32,6 +37,7 @@ namespace PicDispatch.ViewModels
             ClassifyCommand = new RelayCommand(ClassifySelected, () => CanClassify);
             RemoveCommand = new RelayCommand(RemoveSelected, () => CanRemove);
             ClearTrashCommand = new RelayCommand(ClearTrash, () => CanClearTrash);
+            RefreshCommand = new RelayCommand(Refresh);
             UndoCommand = new RelayCommand(Undo, () => _mainViewModel.UndoCommand.CanExecute(null));
             SelectedTarget = Targets.FirstOrDefault();
             RefreshTrashItems();
@@ -96,6 +102,12 @@ namespace PicDispatch.ViewModels
         public void Dispose()
         {
             _fileActionService.StateChanged -= OnFileActionStateChanged;
+        }
+
+        public void Refresh()
+        {
+            _fileActionService.PruneMissingTrashItems();
+            RefreshTrashItems();
         }
 
         private void ClassifySelected()
@@ -172,6 +184,7 @@ namespace PicDispatch.ViewModels
         private void RefreshTrashItems()
         {
             var selectedPath = SelectedTrashItem?.TrashPath;
+            var refreshVersion = ++_thumbnailRefreshVersion;
             TrashItems.Clear();
             foreach (var item in _fileActionService.TrashItems)
             {
@@ -182,6 +195,30 @@ namespace PicDispatch.ViewModels
                                     string.Equals(item.TrashPath, selectedPath, StringComparison.OrdinalIgnoreCase)) ??
                                 TrashItems.FirstOrDefault();
             RaiseCommandStates();
+
+            foreach (var item in TrashItems)
+            {
+                LoadThumbnailAsync(item, refreshVersion);
+            }
+        }
+
+        private async void LoadThumbnailAsync(TrashItem item, int refreshVersion)
+        {
+            try
+            {
+                var thumbnail = await Task.Run(() => _imageLoaderService.LoadThumbnail(item.TrashPath, 48));
+                if (refreshVersion == _thumbnailRefreshVersion && TrashItems.Contains(item))
+                {
+                    item.Thumbnail = thumbnail;
+                }
+            }
+            catch
+            {
+                if (refreshVersion == _thumbnailRefreshVersion && TrashItems.Contains(item))
+                {
+                    item.Thumbnail = null;
+                }
+            }
         }
 
         private void OnFileActionStateChanged()
