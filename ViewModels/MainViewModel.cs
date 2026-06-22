@@ -119,6 +119,8 @@ namespace PicDispatch.ViewModels
 
         public bool HasTrashItems => TrashCount > 0;
 
+        public int UndoCount => _fileActionService.UndoCount;
+
         public bool IsConfigured => _settings != null &&
                                     _settings.SourceFolders.Count > 0 &&
                                     _settings.TargetFolders.Count > 0;
@@ -160,7 +162,10 @@ namespace PicDispatch.ViewModels
                     .Select(target => target.Shortcut)
                     .ToArray();
                 var shortcutText = shortcuts.Length > 0 ? string.Join("/", shortcuts) : "Target Shortcut";
-                return $"Press {shortcutText} to sort, Delete to move to Trash, ←/→ to switch images";
+                var undoText = $"{UndoCount} action{(UndoCount == 1 ? string.Empty : "s")} undoable";
+                return HasImage
+                    ? $"Press {shortcutText} to sort, Delete to move to Trash, ←/→ to switch images · {undoText}"
+                    : undoText;
             }
         }
 
@@ -318,6 +323,14 @@ namespace PicDispatch.ViewModels
             }
             catch (Exception ex)
             {
+                if (!File.Exists(item.Path))
+                {
+                    StatusText = $"Source missing: {item.FileName}";
+                    RemoveMissingItemAndAdvance(item);
+                    ShowNotification($"Source file missing, skipped: {item.FileName}");
+                    return;
+                }
+
                 StatusText = $"Move failed: {item.FileName}";
                 ShowNotification($"移动失败：{ex.Message}");
                 await LoadCurrentImageAsync();
@@ -349,6 +362,14 @@ namespace PicDispatch.ViewModels
             }
             catch (Exception ex)
             {
+                if (!File.Exists(item.Path))
+                {
+                    StatusText = $"Source missing: {item.FileName}";
+                    RemoveMissingItemAndAdvance(item);
+                    ShowNotification($"Source file missing, skipped: {item.FileName}");
+                    return;
+                }
+
                 StatusText = $"Delete failed: {item.FileName}";
                 ShowNotification($"Failed to move to Trash: {ex.Message}");
                 await LoadCurrentImageAsync();
@@ -433,6 +454,36 @@ namespace PicDispatch.ViewModels
             _queue.RemoveAt(_currentIndex);
             RefreshSourceFolderState();
             if (_currentIndex >= _queue.Count)
+            {
+                _currentIndex = _queue.Count - 1;
+            }
+
+            SyncSelectedSourceFolderToCurrent();
+            RefreshSourceFolderState();
+            RaiseQueuePositionChanged();
+            _ = LoadCurrentImageAsync();
+        }
+
+        private void RemoveMissingItemAndAdvance(ImageItem item)
+        {
+            var removeIndex = _currentIndex >= 0 &&
+                              _currentIndex < _queue.Count &&
+                              string.Equals(_queue[_currentIndex].Path, item.Path, StringComparison.OrdinalIgnoreCase)
+                ? _currentIndex
+                : _queue.FindIndex(candidate => string.Equals(candidate.Path, item.Path, StringComparison.OrdinalIgnoreCase));
+
+            if (removeIndex < 0)
+            {
+                _ = LoadCurrentImageAsync();
+                return;
+            }
+
+            _queue.RemoveAt(removeIndex);
+            if (_currentIndex > removeIndex)
+            {
+                _currentIndex--;
+            }
+            else if (_currentIndex >= _queue.Count)
             {
                 _currentIndex = _queue.Count - 1;
             }
@@ -563,6 +614,8 @@ namespace PicDispatch.ViewModels
             OnPropertyChanged(nameof(CanJump));
             OnPropertyChanged(nameof(TrashCount));
             OnPropertyChanged(nameof(HasTrashItems));
+            OnPropertyChanged(nameof(UndoCount));
+            OnPropertyChanged(nameof(ActionStatusText));
             UndoCommand.RaiseCanExecuteChanged();
             TrashCurrentCommand.RaiseCanExecuteChanged();
             MoveToTargetCommand.RaiseCanExecuteChanged();
@@ -587,6 +640,8 @@ namespace PicDispatch.ViewModels
 
             OnPropertyChanged(nameof(TrashCount));
             OnPropertyChanged(nameof(HasTrashItems));
+            OnPropertyChanged(nameof(UndoCount));
+            OnPropertyChanged(nameof(ActionStatusText));
             RaiseCommandStates();
         }
 
@@ -595,7 +650,7 @@ namespace PicDispatch.ViewModels
             switch (kind)
             {
                 case FileActionKind.MoveToTrash:
-                    return "Undo: Moved to Trash";
+                    return "Undo: Restored from Trash";
                 case FileActionKind.ClassifyFromTrash:
                     return "Undo: Classified from Trash";
                 case FileActionKind.RemoveFromTrash:

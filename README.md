@@ -9,8 +9,8 @@ Just press key to move your picture to target folder.
 [Go to Releases](../../releases)
 
 ## ROADMAP
-- [x] Undo action
 - [x] Trash
+- [x] Undo action, state 完全错误
 - [ ] copy mode modifier
 - [ ] add app manifest
 

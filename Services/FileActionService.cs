@@ -36,6 +36,8 @@ namespace PicDispatch.Services
 
         public bool CanUndo => _history.Count > 0;
 
+        public int UndoCount => _history.Count;
+
         public int TrashCount => _trashItems.Count;
 
         public IReadOnlyList<TrashItem> TrashItems => _trashItems;
@@ -62,16 +64,35 @@ namespace PicDispatch.Services
 
         public FileActionRecord MoveToTrash(ImageItem item, int queueIndex)
         {
+            if (!File.Exists(item.Path))
+            {
+                throw new FileNotFoundException("Source file was not found.", item.Path);
+            }
+
             Directory.CreateDirectory(_trashRoot);
             var destinationPath = CreateUniquePath(Path.Combine(_trashRoot, Path.GetFileName(item.Path)));
             File.Move(item.Path, destinationPath);
 
             var trashItem = new TrashItem(destinationPath, item.Path, item.SourceFolder);
-            _trashItems.Add(trashItem);
-            SaveTrashItem(trashItem);
-            var record = new FileActionRecord(FileActionKind.MoveToTrash, item.Path, destinationPath, item.Path, item.SourceFolder, queueIndex);
-            Push(record);
-            return record;
+            try
+            {
+                SaveTrashItem(trashItem);
+                _trashItems.Add(trashItem);
+                var record = new FileActionRecord(FileActionKind.MoveToTrash, item.Path, destinationPath, item.Path, item.SourceFolder, queueIndex);
+                Push(record);
+                return record;
+            }
+            catch
+            {
+                if (File.Exists(destinationPath) && !File.Exists(item.Path))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(item.Path));
+                    File.Move(destinationPath, item.Path);
+                }
+
+                RemoveTrashMetadata(destinationPath);
+                throw;
+            }
         }
 
         public FileActionRecord ClassifyFromTrash(TrashItem item, TargetFolder target, MoveConflictResolution conflictResolution)
@@ -97,6 +118,32 @@ namespace PicDispatch.Services
             var record = new FileActionRecord(FileActionKind.RemoveFromTrash, item.TrashPath, destinationPath, item.OriginalPath, item.SourceFolder, -1);
             Push(record);
             return record;
+        }
+
+        public void RestoreFromTrash(TrashItem item)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            var destinationDirectory = Path.GetDirectoryName(item.OriginalPath);
+            if (string.IsNullOrWhiteSpace(destinationDirectory))
+            {
+                throw new IOException("Original path is invalid.");
+            }
+
+            Directory.CreateDirectory(destinationDirectory);
+            var destinationPath = item.OriginalPath;
+            if (File.Exists(destinationPath))
+            {
+                destinationPath = CreateUniquePath(destinationPath);
+            }
+
+            File.Move(item.TrashPath, destinationPath);
+            RemoveTrashMetadata(item.TrashPath);
+            RemoveTrashItem(item.TrashPath);
+            NotifyStateChanged();
         }
 
         public FileActionRecord ClearTrash()
@@ -192,6 +239,7 @@ namespace PicDispatch.Services
             {
                 case FileActionKind.MoveToTrash:
                     RemoveTrashItem(record.ToPath);
+                    RemoveTrashMetadata(record.ToPath);
                     break;
                 case FileActionKind.ClassifyFromTrash:
                 case FileActionKind.RemoveFromTrash:
@@ -333,7 +381,7 @@ namespace PicDispatch.Services
             throw new IOException("Could not create a unique destination path.");
         }
 
-        private class TrashItemMetadata
+        public class TrashItemMetadata
         {
             public string OriginalPath { get; set; }
 

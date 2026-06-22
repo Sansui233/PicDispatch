@@ -221,7 +221,7 @@
 
                 <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,12">
                     <Button Content="Trash" Command="{Binding TrashCurrentCommand}" Style="{StaticResource TextButtonStyle}" Foreground="{StaticResource DangerBrush}" Margin="0,0,8,0"/>
-                    <Button Content="Undo" Command="{Binding UndoCommand}" Style="{StaticResource TextButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Undo" Command="{Binding c}" Style="{StaticResource TextButtonStyle}" Margin="0,0,8,0"/>
                     <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource TextButtonStyle}"/>
                 </StackPanel>
 

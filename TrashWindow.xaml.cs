@@ -24,6 +24,19 @@ namespace PicDispatch
             _viewModel.Refresh();
         }
 
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.Z)
+            {
+                if (_viewModel.RestoreCommand.CanExecute(null))
+                {
+                    _viewModel.RestoreCommand.Execute(null);
+                }
+
+                e.Handled = true;
+            }
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();

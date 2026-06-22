@@ -13,6 +13,7 @@
         Background="{StaticResource AppBackgroundBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
         Loaded="Window_Loaded"
+        PreviewKeyDown="Window_PreviewKeyDown"
         Closing="Window_Closing">
     <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="12" ClipToBounds="True">
     <Grid>
@@ -35,8 +36,8 @@
                        Margin="18,0,0,0"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,6,8,6">
-                <Button Content="Undo"
-                        Command="{Binding UndoCommand}"
+                <Button Content="Restore"
+                    Command="{Binding RestoreCommand}"
                         Style="{StaticResource TextButtonStyle}"
                         MinHeight="34"
                         Margin="0,0,6,0"/>

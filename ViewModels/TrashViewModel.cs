@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,7 +12,7 @@ namespace PicDispatch.ViewModels
 {
     public class TrashViewModel : ObservableObject
     {
-    public RelayCommand RefreshCommand { get; }
+        public RelayCommand RefreshCommand { get; }
         private readonly FileActionService _fileActionService;
         private readonly ImageLoaderService _imageLoaderService;
         private readonly MainViewModel _mainViewModel;
@@ -30,6 +31,7 @@ namespace PicDispatch.ViewModels
             _mainViewModel = mainViewModel;
             _imageLoaderService = imageLoaderService;
             _fileActionService.StateChanged += OnFileActionStateChanged;
+            _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
 
             TrashItems = new ObservableCollection<TrashItem>();
             Targets = new ObservableCollection<TargetFolder>(targets ?? Enumerable.Empty<TargetFolder>());
@@ -38,7 +40,7 @@ namespace PicDispatch.ViewModels
             RemoveCommand = new RelayCommand(RemoveSelected, () => CanRemove);
             ClearTrashCommand = new RelayCommand(ClearTrash, () => CanClearTrash);
             RefreshCommand = new RelayCommand(Refresh);
-            UndoCommand = new RelayCommand(Undo, () => _mainViewModel.UndoCommand.CanExecute(null));
+            RestoreCommand = new RelayCommand(Restore, () => CanRestore);
             SelectedTarget = Targets.FirstOrDefault();
             RefreshTrashItems();
         }
@@ -91,17 +93,20 @@ namespace PicDispatch.ViewModels
 
         public bool CanClearTrash => TrashItems.Count > 0;
 
+        public bool CanRestore => SelectedTrashItem != null;
+
         public RelayCommand ClassifyCommand { get; }
 
         public RelayCommand RemoveCommand { get; }
 
         public RelayCommand ClearTrashCommand { get; }
 
-        public RelayCommand UndoCommand { get; }
+        public RelayCommand RestoreCommand { get; }
 
         public void Dispose()
         {
             _fileActionService.StateChanged -= OnFileActionStateChanged;
+            _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
         }
 
         public void Refresh()
@@ -170,15 +175,24 @@ namespace PicDispatch.ViewModels
             }
         }
 
-        private void Undo()
+        private void Restore()
         {
-            if (!_mainViewModel.UndoCommand.CanExecute(null))
+            if (!CanRestore)
             {
                 return;
             }
 
-            _mainViewModel.UndoCommand.Execute(null);
-            ShowNotification("Failed to undo: {ex.Message}");
+            var item = SelectedTrashItem;
+            try
+            {
+                _fileActionService.RestoreFromTrash(item);
+                _mainViewModel.RefreshCommand.Execute(null);
+                ShowNotification($"Restored: {item.FileName}");
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Failed to restore: {ex.Message}");
+            }
         }
 
         private void RefreshTrashItems()
@@ -232,15 +246,31 @@ namespace PicDispatch.ViewModels
             RefreshTrashItems();
         }
 
+        private void OnMainViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MainViewModel.CanUndo) ||
+                e.PropertyName == nameof(MainViewModel.InteractionState))
+            {
+                if (Application.Current != null && !Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.BeginInvoke(new Action(RaiseCommandStates));
+                    return;
+                }
+
+                RaiseCommandStates();
+            }
+        }
+
         private void RaiseCommandStates()
         {
             OnPropertyChanged(nameof(CanClassify));
             OnPropertyChanged(nameof(CanRemove));
             OnPropertyChanged(nameof(CanClearTrash));
+            OnPropertyChanged(nameof(CanRestore));
             ClassifyCommand?.RaiseCanExecuteChanged();
             RemoveCommand?.RaiseCanExecuteChanged();
             ClearTrashCommand?.RaiseCanExecuteChanged();
-            UndoCommand?.RaiseCanExecuteChanged();
+            RestoreCommand?.RaiseCanExecuteChanged();
         }
 
         private async void ShowNotification(string message)
